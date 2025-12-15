@@ -3,7 +3,7 @@
 
 **DeskLink** is a powerful, open-source tool that turns your Android phone into a seamless remote control for your Windows PC. Whether you want to control Netflix from your bed, manage presentations, or use your phone as a trackpad/keyboard, DeskLink makes it instant and easy.
 
-![DeskLink Banner](https://www.freepik.com/icon/responsive_9594715#fromView=search&page=1&position=61&uuid=af09e91f-958b-4f57-866f-01b1895df375)
+![DeskLink Banner](frontend/assets/app_icon.png)
 
 ---
 
@@ -153,5 +153,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 
 Made with ❤️ by [Kunal]
+
 
 
