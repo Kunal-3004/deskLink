@@ -12,6 +12,8 @@ class WebSocketService extends ChangeNotifier {
   bool isConnecting = false;
   String statusMessage = "Disconnected";
 
+  List<dynamic> activeApps = [];
+
   String _serverIp = "";
 
   double cpuUsage = 0;
@@ -50,6 +52,11 @@ class WebSocketService extends ChangeNotifier {
             String text = data['text'];
             Clipboard.setData(ClipboardData(text: text));
             // _messageController.add("Copied from PC: ${text.substring(0, text.length > 20 ? 20 : text.length)}...");
+          }
+          if (data['type'] == 'apps_list') {
+             String rawJson = data['data'];
+             activeApps = jsonDecode(rawJson);
+             notifyListeners(); 
           }
         },
         onDone: () {
@@ -97,6 +104,16 @@ class WebSocketService extends ChangeNotifier {
       final msg = jsonEncode({
         "type": "command",
         "payload": commandID
+      });
+      _channel!.sink.add(msg);
+    }
+  }
+
+  void sendCustom(String type, dynamic payload) {
+    if (_channel != null && isConnected) {
+      final msg = jsonEncode({
+        "type": type,
+        "payload": payload
       });
       _channel!.sink.add(msg);
     }

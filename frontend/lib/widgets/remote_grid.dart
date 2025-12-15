@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/screens/app_screen.dart';
 import 'package:frontend/screens/presentation_screen.dart'; 
 import '../services/websocket_service.dart';
 import '../widgets/macro_button.dart';
@@ -125,6 +126,17 @@ class RemoteGrid extends StatelessWidget {
                   icon: Icons.volume_down,
                   color: Colors.teal,
                   onTap: () => wsService.sendCommand("vol_down"),
+                ),
+                MacroButton(
+                  label: "Task Manager",
+                  icon: Icons.window, 
+                  color: Colors.cyan,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AppsScreen()),
+                    );
+                  },
                 ),
                 MacroButton(
                   label: "Shutdown",

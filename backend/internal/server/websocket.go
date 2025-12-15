@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"desklink/internal/system"
+	"fmt"
 	"log"
 	"net/http"
+	"os/exec"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -35,23 +37,22 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		updates := system.WatchClipboard(ctx)
 		for text := range updates {
-			msg := map[string]string{
+			ws.WriteJSON(map[string]string{
 				"type": "clipboard",
 				"text": string(text),
-			}
-			ws.WriteJSON(msg)
+			})
 		}
 	}()
 
 	go func() {
 		for {
 			stats := system.GetStats()
-			msg := map[string]interface{}{
+			err := ws.WriteJSON(map[string]interface{}{
 				"type": "stats",
 				"cpu":  stats.CPU,
 				"ram":  stats.RAM,
-			}
-			if err := ws.WriteJSON(msg); err != nil {
+			})
+			if err != nil {
 				return
 			}
 			time.Sleep(1 * time.Second)
@@ -59,43 +60,108 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
-		var msg Message
+		var msg map[string]interface{}
+
 		err := ws.ReadJSON(&msg)
 		if err != nil {
+			log.Printf("Client disconnected: %v", err)
 			break
 		}
 
-		switch msg.Type {
+		msgType, ok := msg["type"].(string)
+		if !ok {
+			continue
+		}
+
+		switch msgType {
 
 		case "command":
-			if msg.Payload == "ping" {
-				response := map[string]string{
-					"type":    "notification",
-					"message": "Pong! 🏓 PC is alive.",
+			if payload, ok := msg["payload"].(string); ok {
+				if payload == "ping" {
+					ws.WriteJSON(map[string]string{
+						"type":    "notification",
+						"message": "Pong! 🏓 PC is alive.",
+					})
+				} else {
+					system.ExecuteCommand(payload)
 				}
-				ws.WriteJSON(response)
-			} else {
-				system.ExecuteCommand(msg.Payload)
 			}
 
 		case "type":
-			system.TypeString(msg.Payload)
+			if text, ok := msg["payload"].(string); ok {
+				system.TypeString(text)
+			}
 
 		case "key":
-			system.HandleSpecialKey(msg.Payload)
+			if key, ok := msg["payload"].(string); ok {
+				system.HandleSpecialKey(key)
+			}
 
 		case "clipboard":
-			system.WriteClipboard(msg.Payload)
+			if text, ok := msg["payload"].(string); ok {
+				system.WriteClipboard(text)
+			}
 
 		case "mouse":
-			system.MoveMouseRelative(msg.DX, msg.DY)
+			dx := int(msg["dx"].(float64))
+			dy := int(msg["dy"].(float64))
+			system.MoveMouseRelative(dx, dy)
 
 		case "click":
 			system.LeftClick()
 
 		case "right_click":
 			system.RightClick()
-		}
 
+		case "get_apps":
+			psScript := "@(Get-Process | Where-Object {$_.MainWindowTitle -ne ''} | Select-Object MainWindowTitle, Id, ProcessName | ConvertTo-Json -Compress)"
+			cmd := exec.Command("powershell", "-NoProfile", "-Command", psScript)
+			output, err := cmd.CombinedOutput()
+
+			if err != nil {
+				log.Println("Error getting apps:", err)
+				continue
+			}
+
+			ws.WriteJSON(map[string]interface{}{
+				"type": "apps_list",
+				"data": string(output),
+			})
+
+		case "activate_app":
+			var pidStr string
+			if f, ok := msg["payload"].(float64); ok {
+				pidStr = fmt.Sprintf("%d", int(f))
+			} else {
+				pidStr = fmt.Sprintf("%v", msg["payload"])
+			}
+
+			psScript := fmt.Sprintf(`
+				$code = '
+				[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+				[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+				'
+				$type = Add-Type -MemberDefinition $code -Name Win32 -Namespace Win32 -PassThru
+				
+				$proc = Get-Process -Id %s -ErrorAction SilentlyContinue
+				if ($proc) {
+					$handle = $proc.MainWindowHandle
+					if ($handle -ne [IntPtr]::Zero) {
+						$type::ShowWindow($handle, 9) 
+						$type::SetForegroundWindow($handle)
+					}
+				}
+			`, pidStr)
+
+			exec.Command("powershell", "-NoProfile", "-Command", psScript).Start()
+			log.Printf("🚀 Force Switching to PID: %s", pidStr)
+
+		case "kill_app":
+			if payload, ok := msg["payload"]; ok {
+				pid := fmt.Sprintf("%v", payload)
+				exec.Command("taskkill", "/F", "/PID", pid).Start()
+				log.Printf("Killed App PID: %s", pid)
+			}
+		}
 	}
 }
