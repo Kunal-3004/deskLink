@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:frontend/screens/file_explorer_screen.dart';
 import 'package:frontend/screens/mirror_screen.dart';
 import 'package:frontend/utils/colors.dart';
+import 'package:provider/provider.dart';
 import '../services/websocket_service.dart';
 import '../screens/presentation_screen.dart';
 import '../widgets/custom_snackbar.dart';
@@ -14,10 +15,88 @@ class RemoteGrid extends StatelessWidget {
 
   const RemoteGrid({super.key, required this.wsService});
 
+  void _showRunDialog(BuildContext context) {
+    final TextEditingController _controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), 
+        title: const Row(
+          children: [
+            Icon(Icons.rocket_launch, color: Colors.pinkAccent),
+            SizedBox(width: 10),
+            Text("Run Command", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Enter the name of the app or command to launch on your PC.",
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: _controller,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              autofocus: true,
+              cursorColor: Colors.pinkAccent,
+              decoration: InputDecoration(
+                hintText: "e.g. chrome, excel, notepad",
+                hintStyle: TextStyle(color: Colors.grey[600]),
+                filled: true,
+                fillColor: Colors.black45,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                prefixIcon: const Icon(Icons.terminal, color: Colors.grey),
+              ),
+              onSubmitted: (_) => _submitRun(context, _controller.text),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(foregroundColor: Colors.grey),
+            child: const Text("Cancel"),
+          ),
+          
+          ElevatedButton(
+            onPressed: () => _submitRun(context, _controller.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.pinkAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            child: const Text("Run"),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  void _submitRun(BuildContext context, String appName) {
+    if (appName.isNotEmpty) {
+      Provider.of<WebSocketService>(context, listen: false).sendCustom("run_app", appName);
+      Navigator.pop(context); 
+      
+      // CustomSnackBar.show(context, message: "Launching '$appName'...", color: Colors.white);
+
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 80), // Extra bottom padding for navbar
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 80),
       children: [
         
         _buildHeader("Productivity & Tools"),
@@ -90,6 +169,13 @@ class RemoteGrid extends StatelessWidget {
           _buildBtn(context, "Netflix", Icons.movie, Colors.redAccent, () => wsService.sendCommand("netflix")),
           _buildBtn(context, "Vol Up", Icons.volume_up, Colors.green, () => wsService.sendCommand("vol_up")),
           _buildBtn(context, "Vol Down", Icons.volume_down, Colors.teal, () => wsService.sendCommand("vol_down")),
+          _buildBtn(
+            context,
+            "Run...", 
+            Icons.rocket_launch, 
+            Colors.pinkAccent, 
+            () => _showRunDialog(context),
+          ),
         ]),
 
         const SizedBox(height: 25),

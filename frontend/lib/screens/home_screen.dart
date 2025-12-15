@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final wsService = Provider.of<WebSocketService>(context, listen: false);
       wsService.messageStream.listen((message) {
-        if (mounted) CustomSnackBar.showInfo(context, message);
+        if (mounted) CustomSnackBar.show(context, message: message, color: Colors.white);
       });
     });
   }
