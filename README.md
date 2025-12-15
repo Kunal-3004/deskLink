@@ -67,7 +67,7 @@ graph LR
     end
 
     %% --- Main Connections ---
-    Flutter <==>|WebSockets (JSON)| Router
+    Flutter <==>|"WebSockets (JSON)"| Router
     Flutter <==>|HTTP Download| Router
     Router <==>|Port 8080| GoServer
 
