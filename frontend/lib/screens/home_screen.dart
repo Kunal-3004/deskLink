@@ -5,6 +5,7 @@ import '../services/websocket_service.dart';
 import '../widgets/custom_snackbar.dart';
 import 'trackpad_screen.dart';
 import 'stats_screen.dart';
+import 'qr_scan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,18 +16,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _ipController = TextEditingController();
-  int _selectedIndex = 0; 
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final wsService = Provider.of<WebSocketService>(context, listen: false);
-      
       wsService.messageStream.listen((message) {
         if (mounted) {
-           CustomSnackBar.showInfo(context, message);
+          CustomSnackBar.showInfo(context, message);
         }
       });
     });
@@ -35,7 +34,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final wsService = Provider.of<WebSocketService>(context);
-
 
     if (!wsService.isConnected) {
       return Scaffold(
@@ -69,6 +67,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     fillColor: const Color(0xFF2D2D44),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     prefixIcon: const Icon(Icons.wifi, color: Colors.white54),
+                    
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.qr_code_scanner, color: Colors.blueAccent),
+                      onPressed: () async {
+                        final ip = await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const QRScanScreen()),
+                        );
+                        
+                        if (ip != null) {
+                          _ipController.text = ip;
+                          if (context.mounted) {
+                             CustomSnackBar.showSuccess(context, "IP Found: $ip");
+                          }
+                        }
+                      },
+                    ),
+                    
                     errorText: wsService.statusMessage.contains("Unreachable") ? "Could not find PC" : null,
                   ),
                 ),
@@ -104,7 +120,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C),
-      
       appBar: AppBar(
         title: const Text("DeskLink", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF2D2D44),
@@ -135,16 +150,14 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         ],
       ),
-
       body: IndexedStack(
         index: _selectedIndex,
         children: [
           RemoteGrid(wsService: wsService),
-          const TrackpadScreen(),     
-          const StatsScreen(),  
+          const TrackpadScreen(),
+          const StatsScreen(),
         ],
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF2D2D44),
         selectedItemColor: Colors.blueAccent,
