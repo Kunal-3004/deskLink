@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/utils/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../services/websocket_service.dart';
@@ -13,12 +14,11 @@ class PresentationScreen extends StatefulWidget {
 }
 
 class _PresentationScreenState extends State<PresentationScreen> {
-  // --- Timer Variables ---
+
   Timer? _timer;
   int _seconds = 0;
   bool _isTimerRunning = false;
 
-  // --- Air Mouse Variables ---
   bool _isAirMouseActive = false;
   StreamSubscription? _gyroSubscription;
   DateTime _lastSendTime = DateTime.now();
@@ -30,7 +30,6 @@ class _PresentationScreenState extends State<PresentationScreen> {
     super.dispose();
   }
 
-  // --- Timer Logic ---
   void _toggleTimer() {
     setState(() {
       _isTimerRunning = !_isTimerRunning;
@@ -83,12 +82,12 @@ class _PresentationScreenState extends State<PresentationScreen> {
     final wsService = Provider.of<WebSocketService>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E2C),
+      backgroundColor: AppColors.bgColor,
       appBar: AppBar(
-        title: const Text("Presentation Mode"),
+        title: const Text("Presentation Mode",style: TextStyle(color: Colors.white),),
         backgroundColor: Colors.black,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () => Navigator.pop(context),
         ),
       ),

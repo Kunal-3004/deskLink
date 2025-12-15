@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/colors.dart';
 import 'package:provider/provider.dart';
-import 'screens/home_screen.dart';
 import 'services/websocket_service.dart';
+import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(
@@ -9,24 +11,37 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => WebSocketService()),
       ],
-      child: const DeskLinkApp(),
+      child: const MyApp(),
     ),
   );
 }
 
-class DeskLinkApp extends StatelessWidget {
-  const DeskLinkApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'DeskLink',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: AppColors.bgColor,
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
+        ),
       ),
-      home: const HomeScreen(),
+      // THE TRAFFIC COP 🚦
+      home: Consumer<WebSocketService>(
+        builder: (context, wsService, child) {
+          if (wsService.isConnected) {
+            return const HomeScreen();
+          } 
+          else {
+            return const LoginScreen();
+          }
+        },
+      ),
     );
   }
 }
