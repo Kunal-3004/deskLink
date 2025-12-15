@@ -15,6 +15,11 @@ const (
 
 	VK_VOLUME_DOWN = 0xAE
 	VK_VOLUME_UP   = 0xAF
+	VK_LEFT        = 0x25
+	VK_UP          = 0x26
+	VK_RIGHT       = 0x27
+	VK_DOWN        = 0x28
+	VK_B           = 0x42
 )
 
 var (
@@ -74,6 +79,31 @@ func ExecuteCommand(cmdID string) {
 
 	case "netflix":
 		openUrl("https://www.netflix.com")
+		return
+
+	case "next_slide":
+		if runtime.GOOS == "windows" {
+			pressKeySafe(VK_RIGHT)
+		} else {
+			cmd = exec.Command("osascript", "-e", "tell application \"System Events\" to key code 124")
+		}
+		return
+
+	case "prev_slide":
+		if runtime.GOOS == "windows" {
+			pressKeySafe(VK_LEFT)
+		} else {
+
+			cmd = exec.Command("osascript", "-e", "tell application \"System Events\" to key code 123")
+		}
+		return
+
+	case "black_screen":
+		if runtime.GOOS == "windows" {
+			pressKeySafe(VK_B)
+		} else {
+			cmd = exec.Command("osascript", "-e", "tell application \"System Events\" to keystroke \"b\"")
+		}
 		return
 
 	default:

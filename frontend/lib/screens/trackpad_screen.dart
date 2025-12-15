@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import '../services/websocket_service.dart';
 import '../widgets/trackpad_key_button.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 class TrackpadScreen extends StatefulWidget {
   const TrackpadScreen({super.key});
@@ -14,6 +16,58 @@ class TrackpadScreen extends StatefulWidget {
 class _TrackpadScreenState extends State<TrackpadScreen> {
   final TextEditingController _textController = TextEditingController();
   String _previousText = "";
+
+  bool _isAirMouseActive = false;
+  StreamSubscription? _gyroSubscription;
+  DateTime _lastSendTime = DateTime.now();
+
+  @override
+  void dispose() {
+    _gyroSubscription?.cancel(); 
+    super.dispose();
+  }
+
+  void _toggleAirMouse(WebSocketService wsService) {
+    setState(() {
+      _isAirMouseActive = !_isAirMouseActive;
+    });
+
+    if (_isAirMouseActive) {
+      bool dataReceived = false;
+
+      _gyroSubscription = gyroscopeEvents.listen((GyroscopeEvent event) {
+        dataReceived = true;
+
+        if (event.x.abs() < 0.1 && event.z.abs() < 0.1) return;
+        if (DateTime.now().difference(_lastSendTime).inMilliseconds < 50) return;
+
+        _lastSendTime = DateTime.now();
+        int dx = (event.z * -15).toInt();
+        int dy = (event.x * -15).toInt();
+        wsService.sendMouse(dx, dy);
+      });
+
+      Future.delayed(const Duration(seconds: 1), () {
+        if (_isAirMouseActive && !dataReceived && context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(
+               content: Text("⚠️ No Gyroscope detected! Air Mouse won't work."),
+               backgroundColor: Colors.red,
+             )
+           );
+           setState(() => _isAirMouseActive = false);
+           _gyroSubscription?.cancel();
+        }
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Air Mouse ON: Wave your phone! 👋")));
+      }
+    } else {
+      _gyroSubscription?.cancel();
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +88,12 @@ class _TrackpadScreenState extends State<TrackpadScreen> {
               TrackpadKeyButton(
                 label: "TAB", 
                 onTap: () => wsService.sendKey("tab")
+              ),
+
+              TrackpadKeyButton(
+                label: _isAirMouseActive ? "AIR: ON" : "AIR: OFF",
+                color: _isAirMouseActive ? Colors.greenAccent : Colors.grey,
+                onTap: () => _toggleAirMouse(wsService),
               ),
               
               TrackpadKeyButton(

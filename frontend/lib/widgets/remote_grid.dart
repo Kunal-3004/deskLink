@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; 
+import 'package:flutter/services.dart';
+import 'package:frontend/screens/presentation_screen.dart'; 
 import '../services/websocket_service.dart';
 import '../widgets/macro_button.dart';
 import '../widgets/custom_snackbar.dart';
@@ -54,7 +55,19 @@ class RemoteGrid extends StatelessWidget {
                     }
                   },
                 ),
-                
+
+                MacroButton(
+                  label: "Present Mode",
+                  icon: Icons.slideshow,
+                  color: Colors.indigoAccent,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PresentationScreen()),
+                    );
+                  },
+                ),
+                            
                 MacroButton(
                   label: "Calculator",
                   icon: Icons.calculate,

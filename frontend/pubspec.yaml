@@ -40,6 +40,7 @@ dependencies:
   mobile_scanner: ^7.1.4
   file_picker: ^10.3.7
   http: ^1.6.0
+  sensors_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:
