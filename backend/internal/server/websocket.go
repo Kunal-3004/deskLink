@@ -297,6 +297,50 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			if path, ok := msg["payload"].(string); ok {
 				exec.Command("cmd", "/C", "start", "", path).Start()
 			}
+
+		case "run_app":
+			if appName, ok := msg["payload"].(string); ok {
+
+				psScript := fmt.Sprintf(`
+					$paths = @(
+						"C:\ProgramData\Microsoft\Windows\Start Menu\Programs",
+						"$env:APPDATA\Microsoft\Windows\Start Menu\Programs"
+					)
+					$shortcut = Get-ChildItem -Path $paths -Recurse -Include "*%s*" -File | Select-Object -First 1
+					if ($shortcut) {
+						Start-Process $shortcut.FullName
+						Write-Output "Found"
+					} else {
+						exit 1
+					}
+				`, appName)
+
+				cmd := exec.Command("powershell", "-NoProfile", "-Command", psScript)
+				err := cmd.Run()
+
+				if err != nil {
+					errFallback := exec.Command("cmd", "/C", "start", "", appName).Run()
+
+					if errFallback != nil {
+						log.Printf("❌ All attempts failed for: %s", appName)
+						ws.WriteJSON(map[string]string{
+							"type":    "notification",
+							"message": "❌ Could not find: " + appName,
+						})
+					} else {
+						ws.WriteJSON(map[string]string{
+							"type":    "notification",
+							"message": "✅ Launched " + appName,
+						})
+					}
+				} else {
+					log.Printf("✅ Smart Launch: %s", appName)
+					ws.WriteJSON(map[string]string{
+						"type":    "notification",
+						"message": "✅ Launched " + appName,
+					})
+				}
+			}
 		}
 	}
 }
