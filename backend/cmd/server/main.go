@@ -27,6 +27,14 @@ func main() {
 
 	http.HandleFunc("/ws", server.HandleConnections)
 	http.HandleFunc("/upload", server.HandleFileUpload)
+	http.HandleFunc("/download", func(w http.ResponseWriter, r *http.Request) {
+		filePath := r.URL.Query().Get("path")
+		if filePath == "" {
+			http.Error(w, "Missing path", http.StatusBadRequest)
+			return
+		}
+		http.ServeFile(w, r, filePath)
+	})
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 

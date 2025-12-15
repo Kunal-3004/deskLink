@@ -16,7 +16,10 @@ class WebSocketService extends ChangeNotifier {
 
   List<dynamic> activeApps = [];
 
-  String _serverIp = "";
+  List<dynamic> currentFiles = [];
+  String currentPath = "";
+
+  String serverIp = "";
 
   double cpuUsage = 0;
   double ramUsage = 0;
@@ -25,7 +28,7 @@ class WebSocketService extends ChangeNotifier {
   Stream<String> get messageStream => _messageController.stream;
 
   Future<void> connect(String ipAddress) async {
-    _serverIp = ipAddress;
+    serverIp = ipAddress;
     isConnecting = true;
     statusMessage = "Connecting...";
     notifyListeners();
@@ -65,6 +68,11 @@ class WebSocketService extends ChangeNotifier {
             latestScreenFrame = base64Decode(base64String);
             notifyListeners(); 
           }
+          if (data['type'] == 'file_list') {
+             currentPath = data['current_path'];
+             currentFiles = jsonDecode(data['data']);
+             notifyListeners();
+          }
         },
         onDone: () {
           _disconnectCleanup("Disconnected from PC");
@@ -87,9 +95,9 @@ class WebSocketService extends ChangeNotifier {
   }
 
   Future<String> uploadFile(File file) async {
-    if (!isConnected || _serverIp.isEmpty) return "Not connected to PC";
+    if (!isConnected || serverIp.isEmpty) return "Not connected to PC";
 
-    final uri = Uri.parse("http://$_serverIp:8080/upload");
+    final uri = Uri.parse("http://$serverIp:8080/upload");
 
     try {
       var request = http.MultipartRequest('POST', uri);

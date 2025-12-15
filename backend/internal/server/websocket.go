@@ -5,11 +5,14 @@ import (
 	"context"
 	"desklink/internal/system"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"image/jpeg"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -192,38 +195,6 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 				"data": encodedStr,
 			})
 
-		// case "mouse_tap_absolute":
-		// 	payload, ok := msg["payload"].(map[string]interface{})
-		// 	if !ok {
-		// 		log.Println("⚠️ Error: Mouse payload is invalid")
-		// 		continue
-		// 	}
-
-		// 	var percentX, percentY float64
-
-		// 	if val, ok := payload["x"].(float64); ok {
-		// 		percentX = val
-		// 	} else {
-		// 		log.Println("⚠️ Error: X is not a number")
-		// 		continue
-		// 	}
-
-		// 	if val, ok := payload["y"].(float64); ok {
-		// 		percentY = val
-		// 	} else {
-		// 		log.Println("⚠️ Error: Y is not a number")
-		// 		continue
-		// 	}
-
-		// 	log.Printf("🖱️ Tap received: X=%.2f, Y=%.2f", percentX, percentY)
-
-		// 	screenWidth, screenHeight := system.GetScreenSize()
-		// 	targetX := int(percentX * float64(screenWidth))
-		// 	targetY := int(percentY * float64(screenHeight))
-
-		// 	system.MoveMouseAbsolute(targetX, targetY)
-		// 	system.LeftClick()
-
 		case "mouse_move_absolute":
 			payload, ok := msg["payload"].(map[string]interface{})
 			if !ok {
@@ -249,6 +220,83 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			targetY := int(percentY * float64(screenHeight))
 
 			system.MoveMouseAbsolute(targetX, targetY)
+
+		case "get_files":
+			path := ""
+			if p, ok := msg["payload"].(string); ok {
+				path = p
+			}
+
+			var fileList []map[string]interface{}
+
+			if path == "" {
+				for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
+					drivePath := string(drive) + ":\\"
+					f, err := os.Open(drivePath)
+					if err == nil {
+						fileList = append(fileList, map[string]interface{}{
+							"name": drivePath,
+							"type": "drive",
+							"path": drivePath,
+						})
+						f.Close()
+					}
+				}
+
+				jsonBytes, _ := json.Marshal(fileList)
+				ws.WriteJSON(map[string]interface{}{
+					"type":         "file_list",
+					"current_path": "",
+					"data":         string(jsonBytes),
+				})
+				continue
+			}
+
+			entries, err := os.ReadDir(path)
+			if err != nil {
+				ws.WriteJSON(map[string]string{
+					"type":    "notification",
+					"message": "❌ Access Denied: " + path,
+				})
+				continue
+			}
+
+			parent := filepath.Dir(path)
+			if parent == path {
+				parent = ""
+			}
+
+			fileList = append(fileList, map[string]interface{}{
+				"name": "..",
+				"type": "back",
+				"path": parent,
+			})
+
+			for _, e := range entries {
+				fullPath := filepath.Join(path, e.Name())
+				entryType := "file"
+				if e.IsDir() {
+					entryType = "folder"
+				}
+
+				fileList = append(fileList, map[string]interface{}{
+					"name": e.Name(),
+					"type": entryType,
+					"path": fullPath,
+				})
+			}
+
+			jsonBytes, _ := json.Marshal(fileList)
+			ws.WriteJSON(map[string]interface{}{
+				"type":         "file_list",
+				"current_path": path,
+				"data":         string(jsonBytes),
+			})
+
+		case "open_file":
+			if path, ok := msg["payload"].(string); ok {
+				exec.Command("cmd", "/C", "start", "", path).Start()
+			}
 		}
 	}
 }
