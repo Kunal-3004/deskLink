@@ -5,12 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
 class WebSocketService extends ChangeNotifier {
   WebSocketChannel? _channel;
   bool isConnected = false;
   bool isConnecting = false;
   String statusMessage = "Disconnected";
+  Uint8List? latestScreenFrame;
 
   List<dynamic> activeApps = [];
 
@@ -57,6 +59,11 @@ class WebSocketService extends ChangeNotifier {
              String rawJson = data['data'];
              activeApps = jsonDecode(rawJson);
              notifyListeners(); 
+          }
+          if (data['type'] == 'screen_frame') {
+            String base64String = data['data'];
+            latestScreenFrame = base64Decode(base64String);
+            notifyListeners(); 
           }
         },
         onDone: () {
@@ -156,7 +163,8 @@ class WebSocketService extends ChangeNotifier {
       final msg = jsonEncode({
         "type": "mouse",
         "dx": dx,
-        "dy": dy
+        "dy": dy,
+        "payload":""
       });
       _channel!.sink.add(msg);
     }

@@ -1,15 +1,20 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"desklink/internal/system"
+	"encoding/base64"
 	"fmt"
+	"image/jpeg"
 	"log"
 	"net/http"
 	"os/exec"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/kbinani/screenshot"
+	"github.com/nfnt/resize"
 )
 
 var upgrader = websocket.Upgrader{
@@ -162,6 +167,88 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 				exec.Command("taskkill", "/F", "/PID", pid).Start()
 				log.Printf("Killed App PID: %s", pid)
 			}
+
+		case "get_screen":
+			n := screenshot.NumActiveDisplays()
+			if n <= 0 {
+				return
+			}
+
+			bounds := screenshot.GetDisplayBounds(0)
+			img, err := screenshot.CaptureRect(bounds)
+			if err != nil {
+				return
+			}
+
+			resizedImg := resize.Resize(800, 0, img, resize.Bilinear)
+
+			buf := new(bytes.Buffer)
+			jpeg.Encode(buf, resizedImg, &jpeg.Options{Quality: 50})
+
+			encodedStr := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+			ws.WriteJSON(map[string]interface{}{
+				"type": "screen_frame",
+				"data": encodedStr,
+			})
+
+		// case "mouse_tap_absolute":
+		// 	payload, ok := msg["payload"].(map[string]interface{})
+		// 	if !ok {
+		// 		log.Println("⚠️ Error: Mouse payload is invalid")
+		// 		continue
+		// 	}
+
+		// 	var percentX, percentY float64
+
+		// 	if val, ok := payload["x"].(float64); ok {
+		// 		percentX = val
+		// 	} else {
+		// 		log.Println("⚠️ Error: X is not a number")
+		// 		continue
+		// 	}
+
+		// 	if val, ok := payload["y"].(float64); ok {
+		// 		percentY = val
+		// 	} else {
+		// 		log.Println("⚠️ Error: Y is not a number")
+		// 		continue
+		// 	}
+
+		// 	log.Printf("🖱️ Tap received: X=%.2f, Y=%.2f", percentX, percentY)
+
+		// 	screenWidth, screenHeight := system.GetScreenSize()
+		// 	targetX := int(percentX * float64(screenWidth))
+		// 	targetY := int(percentY * float64(screenHeight))
+
+		// 	system.MoveMouseAbsolute(targetX, targetY)
+		// 	system.LeftClick()
+
+		case "mouse_move_absolute":
+			payload, ok := msg["payload"].(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			getFloat := func(v interface{}) float64 {
+				switch i := v.(type) {
+				case float64:
+					return i
+				case int:
+					return float64(i)
+				default:
+					return -1.0
+				}
+			}
+
+			percentX := getFloat(payload["x"])
+			percentY := getFloat(payload["y"])
+
+			screenWidth, screenHeight := system.GetScreenSize()
+			targetX := int(percentX * float64(screenWidth))
+			targetY := int(percentY * float64(screenHeight))
+
+			system.MoveMouseAbsolute(targetX, targetY)
 		}
 	}
 }

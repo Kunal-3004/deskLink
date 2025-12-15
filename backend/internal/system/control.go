@@ -26,6 +26,8 @@ var (
 	user32            = syscall.NewLazyDLL("user32.dll")
 	procKeybdEvent    = user32.NewProc("keybd_event")
 	procMapVirtualKey = user32.NewProc("MapVirtualKeyW")
+
+	procGetSystemMetrics = user32.NewProc("GetSystemMetrics")
 )
 
 func ExecuteCommand(cmdID string) {
@@ -165,4 +167,14 @@ func openUrl(url string) {
 	}
 	cmd.Start()
 
+}
+
+func MoveMouseAbsolute(x, y int) {
+	procSetCursorPos.Call(uintptr(x), uintptr(y))
+}
+
+func GetScreenSize() (int, int) {
+	w, _, _ := procGetSystemMetrics.Call(0)
+	h, _, _ := procGetSystemMetrics.Call(1)
+	return int(w), int(h)
 }

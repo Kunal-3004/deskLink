@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/app_screen.dart';
+import 'package:frontend/screens/mirror_screen.dart';
 import 'package:frontend/utils/colors.dart';
 import '../services/websocket_service.dart';
 import '../screens/presentation_screen.dart';
@@ -58,12 +59,19 @@ class RemoteGrid extends StatelessWidget {
             Colors.indigoAccent, 
             () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PresentationScreen()))
           ),
+          // _buildBtn(
+          //   context,
+          //   "Task Manager", 
+          //   Icons.window, 
+          //   Colors.cyan, 
+          //   () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AppsScreen()))
+          // ),
           _buildBtn(
             context,
-            "Task Manager", 
-            Icons.window, 
-            Colors.cyan, 
-            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AppsScreen()))
+            "Live View", 
+            Icons.cast_connected,
+            Colors.redAccent, 
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScreenMirrorScreen()))
           ),
         ]),
 
