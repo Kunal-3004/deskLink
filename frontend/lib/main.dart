@@ -31,7 +31,6 @@ class MyApp extends StatelessWidget {
           secondary: AppColors.accent,
         ),
       ),
-      // THE TRAFFIC COP 🚦
       home: Consumer<WebSocketService>(
         builder: (context, wsService, child) {
           if (wsService.isConnected) {
