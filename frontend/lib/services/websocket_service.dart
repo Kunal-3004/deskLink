@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io'; 
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter/foundation.dart';
 
@@ -11,6 +12,8 @@ class WebSocketService extends ChangeNotifier {
   bool isConnecting = false;
   String statusMessage = "Disconnected";
 
+  String _serverIp = "";
+
   double cpuUsage = 0;
   double ramUsage = 0;
 
@@ -18,6 +21,7 @@ class WebSocketService extends ChangeNotifier {
   Stream<String> get messageStream => _messageController.stream;
 
   Future<void> connect(String ipAddress) async {
+    _serverIp = ipAddress;
     isConnecting = true;
     statusMessage = "Connecting...";
     notifyListeners();
@@ -65,6 +69,26 @@ class WebSocketService extends ChangeNotifier {
     } finally {
       isConnecting = false;
       notifyListeners();
+    }
+  }
+
+  Future<String> uploadFile(File file) async {
+    if (!isConnected || _serverIp.isEmpty) return "Not connected to PC";
+
+    final uri = Uri.parse("http://$_serverIp:8080/upload");
+
+    try {
+      var request = http.MultipartRequest('POST', uri);
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        return "File sent successfully! 📂";
+      } else {
+        return "Server Error: ${response.statusCode}";
+      }
+    } catch (e) {
+      return "Upload failed: $e";
     }
   }
 

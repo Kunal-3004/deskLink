@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import '../services/websocket_service.dart';
@@ -28,6 +31,30 @@ class RemoteGrid extends StatelessWidget {
               mainAxisSpacing: 15,
               childAspectRatio: 1.1, 
               children: [
+                MacroButton(
+                  label: "Send File", 
+                  icon: Icons.file_upload, 
+                  color: Colors.purpleAccent,
+                  onTap: () async {
+                    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+                    if (result != null && result.files.single.path != null) {
+                      File file = File(result.files.single.path!);
+                      
+                      if (context.mounted) {
+                        CustomSnackBar.showInfo(context,"Sending file... ⏳");
+                        // ScaffoldMessenger.of(context).showSnackBar(
+                        //   const SnackBar(content: Text("Sending file... ⏳")),
+                        // );
+                      }
+
+                      String response = await wsService.uploadFile(file);
+                      
+                      if (context.mounted) CustomSnackBar.showInfo(context, response);
+                    }
+                  },
+                ),
+                
                 MacroButton(
                   label: "Calculator",
                   icon: Icons.calculate,

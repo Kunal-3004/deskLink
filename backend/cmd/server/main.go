@@ -26,6 +26,7 @@ func main() {
 	}
 
 	http.HandleFunc("/ws", server.HandleConnections)
+	http.HandleFunc("/upload", server.HandleFileUpload)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
